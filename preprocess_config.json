@@ -1,0 +1,34 @@
+{
+  "target": "label",
+  "problem_type": "binary_classification",
+  "numeric": {
+    "columns": [
+      "aptitude_score",
+      "performance_score",
+      "stability_index",
+      "load_ratio",
+      "index_weight",
+      "activity_duration",
+      "composite_rank"
+    ],
+    "imputer": "median",
+    "scaler": "standard"
+  },
+  "categorical": {
+    "columns": [
+      "geological_era",
+      "weather_pattern",
+      "region",
+      "personal_interest",
+      "brew_preference",
+      "instrument",
+      "species",
+      "mineral_type"
+    ],
+    "imputer": "most_frequent",
+    "encoder": "onehot",
+    "handle_unknown": "ignore"
+  },
+  "drop_target_na": true,
+  "random_state": 42
+}

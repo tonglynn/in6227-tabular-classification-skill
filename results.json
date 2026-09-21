@@ -1,0 +1,193 @@
+{
+  "target": "label",
+  "classes": [
+    "no",
+    "yes"
+  ],
+  "problem_type": "binary_classification",
+  "n_train": 31109,
+  "n_test": 13333,
+  "n_features": 15,
+  "cv_folds": 5,
+  "models": {
+    "dummy": {
+      "cv_mean": {
+        "accuracy": 0.6351214876499797,
+        "precision": 0.23647457627118645,
+        "recall": 0.2336532953604758,
+        "f1": 0.23505546637450409,
+        "roc_auc": 0.49775284772253015,
+        "pr_auc": 0.2391230576953838
+      },
+      "cv_std": {
+        "accuracy": 0.003883108885468124,
+        "precision": 0.00825227067373719,
+        "recall": 0.008109421085707159,
+        "f1": 0.008180262179518782,
+        "roc_auc": 0.005341661668744927,
+        "pr_auc": NaN
+      },
+      "cv_time_sec": 2.73
+    },
+    "logistic_regression": {
+      "cv_mean": {
+        "accuracy": 0.7902536803232444,
+        "precision": 0.5401270121671444,
+        "recall": 0.8492776837035747,
+        "f1": 0.6602016406993017,
+        "roc_auc": 0.8904585611859288,
+        "pr_auc": 0.7048698569371942
+      },
+      "cv_std": {
+        "accuracy": 0.004118610826904451,
+        "precision": 0.006319802368554839,
+        "recall": 0.015144779352936823,
+        "f1": 0.0045817651331310485,
+        "roc_auc": 0.0036057205138174007,
+        "pr_auc": NaN
+      },
+      "cv_time_sec": 2.45
+    },
+    "random_forest": {
+      "cv_mean": {
+        "accuracy": 0.8265775635464143,
+        "precision": 0.6204008614542948,
+        "recall": 0.7146315513504488,
+        "f1": 0.6641119844308345,
+        "roc_auc": 0.8892434584220406,
+        "pr_auc": 0.7057769377075509
+      },
+      "cv_std": {
+        "accuracy": 0.004002495123066522,
+        "precision": 0.008263155980884925,
+        "recall": 0.013199487279014138,
+        "f1": 0.007769492485774597,
+        "roc_auc": 0.004064443579284482,
+        "pr_auc": NaN
+      },
+      "cv_time_sec": 5.56
+    },
+    "gradient_boosting": {
+      "cv_mean": {
+        "accuracy": 0.8392106432671123,
+        "precision": 0.7083294490135413,
+        "recall": 0.5609604427453226,
+        "f1": 0.6260294384591835,
+        "roc_auc": 0.8913056382746808,
+        "pr_auc": 0.7130676493064576
+      },
+      "cv_std": {
+        "accuracy": 0.004047824741727558,
+        "precision": 0.01196117688438687,
+        "recall": 0.010740998105062063,
+        "f1": 0.009607890698288464,
+        "roc_auc": 0.0034828006598001254,
+        "pr_auc": NaN
+      },
+      "cv_time_sec": 11.46
+    }
+  },
+  "best_model": "random_forest",
+  "selection_metric": "f1",
+  "test_metrics": {
+    "accuracy": 0.8271956798919973,
+    "precision": 0.6177111716621253,
+    "recall": 0.7155934343434344,
+    "f1": 0.66305937408599,
+    "roc_auc": 0.888671391733369,
+    "pr_auc": 0.7010138373603542,
+    "confusion_matrix": [
+      [
+        8762,
+        1403
+      ],
+      [
+        901,
+        2267
+      ]
+    ]
+  },
+  "feature_importance": [
+    {
+      "feature": "cat__weather_pattern_Monsoon",
+      "importance": 0.11202648572170781
+    },
+    {
+      "feature": "num__aptitude_score",
+      "importance": 0.10537409294078975
+    },
+    {
+      "feature": "num__composite_rank",
+      "importance": 0.1024743668157922
+    },
+    {
+      "feature": "num__performance_score",
+      "importance": 0.07496378244074425
+    },
+    {
+      "feature": "num__stability_index",
+      "importance": 0.07341909223712244
+    },
+    {
+      "feature": "cat__instrument_Cello",
+      "importance": 0.07048758490997113
+    },
+    {
+      "feature": "num__activity_duration",
+      "importance": 0.06862769778726527
+    },
+    {
+      "feature": "num__load_ratio",
+      "importance": 0.05584587480930366
+    },
+    {
+      "feature": "num__index_weight",
+      "importance": 0.044969640031915316
+    },
+    {
+      "feature": "cat__weather_pattern_Heatwave",
+      "importance": 0.04169448871807907
+    },
+    {
+      "feature": "cat__instrument_Zither",
+      "importance": 0.019252712757312742
+    },
+    {
+      "feature": "cat__personal_interest_Falconry",
+      "importance": 0.0166647019418813
+    },
+    {
+      "feature": "cat__instrument_Oboe",
+      "importance": 0.016223399618511325
+    },
+    {
+      "feature": "cat__brew_preference_Latte",
+      "importance": 0.014610372917677184
+    },
+    {
+      "feature": "cat__instrument_Dulcimer",
+      "importance": 0.012831078048472411
+    },
+    {
+      "feature": "cat__personal_interest_Astronomy",
+      "importance": 0.012532618177448341
+    },
+    {
+      "feature": "cat__brew_preference_Espresso",
+      "importance": 0.011807512870275098
+    },
+    {
+      "feature": "cat__instrument_Theremin",
+      "importance": 0.009864663610224129
+    },
+    {
+      "feature": "cat__personal_interest_Kite-flying",
+      "importance": 0.009281386494038561
+    },
+    {
+      "feature": "cat__weather_pattern_Blizzard",
+      "importance": 0.00877803283929684
+    }
+  ],
+  "run_at": "2026-09-21T20:05:08.268150+00:00"
+}
