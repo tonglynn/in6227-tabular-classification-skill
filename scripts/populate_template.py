@@ -18,13 +18,13 @@ import win32com.client as win32
 
 BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 TEMPLATE_SRC = r"D:\Users\in6227\IN6227-Reports-Template.doc"
-TEMPLATE_COPY = os.path.join(BASE, "report_filled.doc")
+TEMPLATE_COPY = os.path.join(BASE, "final_report.doc")
 PROFILE_PATH = os.path.join(BASE, "profile.json")
 RESULTS_PATH = os.path.join(BASE, "results.json")
 META_PATH = os.path.join(BASE, "assets", "metadata.json")
 PLOTS_DIR = os.path.join(BASE, "plots")
-PDF_OUT = os.path.join(BASE, "report.pdf")
-DOCX_OUT = os.path.join(BASE, "report_filled.docx")
+PDF_OUT = os.path.join(BASE, "final_report.pdf")
+DOCX_OUT = os.path.join(BASE, "final_report.docx")
 
 
 def load_json(path):

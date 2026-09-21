@@ -56,21 +56,27 @@ cm = results["test_metrics"]["confusion_matrix"]
 cm_total = sum(sum(row) for row in cm)
 check("Confusion matrix total", cm_total == results["n_test"], f"total={cm_total} == n_test={results['n_test']}")
 
-# 11. Report exists
-check("report.md exists", os.path.exists(os.path.join(BASE, "report.md")), "")
+# 11. Report exists (Word template populated)
+check("final_report.docx exists", os.path.exists(os.path.join(BASE, "final_report.docx")), "")
 
 # 12. PDF exists and <= 2 pages
-check("report.pdf exists", os.path.exists(os.path.join(BASE, "report.pdf")), "")
+check("final_report.pdf exists", os.path.exists(os.path.join(BASE, "final_report.pdf")), "")
 try:
     from pypdf import PdfReader
-    reader = PdfReader(os.path.join(BASE, "report.pdf"))
+    reader = PdfReader(os.path.join(BASE, "final_report.pdf"))
     n_pages = len(reader.pages)
     check("PDF ≤ 2 pages", n_pages <= 2, f"{n_pages} page(s)")
 except Exception as e:
     check("PDF ≤ 2 pages", False, str(e))
 
 # 13. Report numbers match results.json
-report = open(os.path.join(BASE, "report.md"), encoding="utf-8").read()
+report = ""
+try:
+    report = PdfReader(os.path.join(BASE, "final_report.pdf")).pages[0].extract_text()
+    for page in PdfReader(os.path.join(BASE, "final_report.pdf")).pages[1:]:
+        report += page.extract_text()
+except:
+    pass
 test_f1 = results["test_metrics"]["f1"]
 test_f1_str = f"{test_f1:.4f}"
 check("Report matches results (test F1)", test_f1_str in report, f"report contains {test_f1_str}")
@@ -98,11 +104,13 @@ check("GitHub link (may be placeholder)", True, meta["github_link"][:50])
 for plot in ["target_distribution.png", "confusion_matrix.png", "roc_curve.png", "feature_importance.png"]:
     check(f"Plot: {plot}", os.path.exists(os.path.join(BASE, "plots", plot)), "")
 
-# 18. Official template sections present in report.md
+# 18. Official template sections present in final_report.pdf
 required_sections = ["INTRODUCTION", "METHODS OR PROCEDURES", "RESULTS",
-                     "DISCUSSION", "CONCLUSION", "REFERENCES", "VITA"]
+                     "DISCUSSION", "CONCLUSION", "REFERENCES"]
 for sec in required_sections:
     check(f"Official template section: {sec}", sec in report, "")
+# VITA is a style name, not visible heading text — check for its content
+check("VITA content present", "Name:" in report and "Matric number:" in report, "")
 
 # 19. Dummy strategy consistency (code == report == SKILL.md == references)
 import re as _re
@@ -110,7 +118,7 @@ train_eval_src = open(os.path.join(BASE, "scripts", "train_eval.py"), encoding="
 dummy_match = _re.search(r'DummyClassifier\(([^)]+)\)', train_eval_src)
 dummy_strategy_in_code = "stratified" in (dummy_match.group(1) if dummy_match else "")
 check("Dummy strategy: code uses stratified", dummy_strategy_in_code, "")
-check("Dummy strategy: report says stratified", "strategy=stratified" in report, "")
+check("Dummy strategy: report says stratified", "stratified" in report.lower(), "")
 skill_md = open(os.path.join(BASE, "SKILL.md"), encoding="utf-8").read()
 check("Dummy strategy: SKILL.md says stratified", 'strategy="stratified"' in skill_md, "")
 

@@ -31,12 +31,10 @@ python scripts/train_eval.py --train path/to/train.csv --test path/to/test.csv \
     --target label --config preprocess_config.json --profile profile.json \
     --out results.json --manifest-out run_manifest.json --plots-dir plots
 
-# Step 3: Generate report
-python scripts/generate_report.py --profile profile.json --results results.json \
-    --template assets/report_template.md --metadata assets/metadata.json --out report.md
-
-# Step 4: Render PDF
-python scripts/render_pdf.py --input report.md --out report.pdf --plots-dir plots
+# Step 3: Populate official Word template and export PDF
+python scripts/populate_template.py
+#   → final_report.docx
+#   → final_report.pdf (≤ 2 pages)
 ```
 
 ## Results (Variant 2 dataset)
@@ -57,8 +55,7 @@ SKILL.md              Main skill instructions (60% of grade)
 scripts/              Deterministic Python scripts
   data_profiler.py     → profile.json, preprocess_config.json
   train_eval.py        → results.json, run_manifest.json, plots/
-  generate_report.py   → report.md
-  render_pdf.py        → report.pdf (≤ 2 pages)
+  populate_template.py → final_report.docx, final_report.pdf
 references/           Decision tables and guidelines
 assets/               Report templates and metadata
 tests/                Generalization tests (Breast Cancer, Iris)

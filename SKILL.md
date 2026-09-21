@@ -101,32 +101,46 @@ The training script:
   feature importance.
 - Writes `results.json` and `run_manifest.json`.
 
-### Step 3 — Generate the report
+### Step 3 — Populate the official Word template and export PDF
 
 ```bash
-python scripts/generate_report.py \
-    --profile profile.json \
-    --results results.json \
-    --template assets/report_template.md \
-    --metadata assets/metadata.json \
-    --out report.md
+python scripts/populate_template.py
 ```
 
-### Step 4 — Render the PDF
+**Architecture:** This script does NOT recreate the template. It:
 
-```bash
-python scripts/render_pdf.py \
-    --input report.md \
-    --out report.pdf \
-    --plots-dir plots
+1. Copies the official `IN6227-Reports-Template.doc` (never modifies the
+   original)
+2. Opens the copy via Microsoft Word COM automation (`win32com`)
+3. Replaces text in the template's existing placeholder paragraphs
+   (preserving all styles, fonts, margins, headers, footers, two-column
+   layout)
+4. Inserts a native Word table for model comparison results
+5. Inserts a small confusion-matrix figure via `InlineShapes`
+6. Saves as `final_report.docx`
+7. Exports to `final_report.pdf` via Word's `ExportAsFixedFormat`
+
+**Pipeline:**
+
+```
+profile.json + results.json + metadata.json
+  → structured report content
+  → COPY of lecturer's Word template
+  → populate content into existing template paragraphs/styles
+  → Microsoft Word
+  → final_report.docx
+  → Word ExportAsFixedFormat
+  → final_report.pdf
 ```
 
-The PDF is rendered with **Times-Roman 10-pt** body text (matching the
-official `IN6227-Reports-Template.doc` which specifies Times New Roman
-10-point), includes the running header "IN6227 DATA MINING 2023,
-WKWSCI", and is verified to be **≤ 2 pages**. The report structure
-follows the official template sections: INTRODUCTION, METHODS OR
-PROCEDURES, RESULTS, DISCUSSION, CONCLUSION, REFERENCES, VITA.
+**Why this approach:** The official `.doc` template is the authoritative
+layout. Page size, margins, two-column layout, typography, heading
+styles, paragraph spacing, headers, footers, and pagination all come
+directly from the lecturer's Word template — none are recreated.
+
+The report structure follows the official template sections:
+INTRODUCTION → METHODS OR PROCEDURES → RESULTS → DISCUSSION →
+CONCLUSION → REFERENCES → VITA.  Verified to be **≤ 2 pages**.
 
 ## 5. Leakage Rules (mandatory)
 
