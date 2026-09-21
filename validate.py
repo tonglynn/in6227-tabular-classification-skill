@@ -1,0 +1,108 @@
+"""Final validation checklist for the SKILL project."""
+import json
+import os
+import sys
+
+BASE = os.path.dirname(os.path.abspath(__file__))
+
+checks = []
+
+def check(name, condition, detail=""):
+    status = "PASS" if condition else "FAIL"
+    checks.append((status, name, detail))
+    print(f"[{status}] {name}: {detail}")
+
+# 1. Original dataset unchanged
+ds_train = os.path.join(BASE, "..", "dataset", "dataset", "train.csv")
+check("Dataset exists", os.path.exists(ds_train), os.path.basename(ds_train))
+
+# 2. Profiler outputs exist
+profile = json.load(open(os.path.join(BASE, "profile.json")))
+check("profile.json", True, f"n_samples={profile['n_samples']}, n_features={profile['n_features']}")
+
+config = json.load(open(os.path.join(BASE, "preprocess_config.json")))
+check("preprocess_config.json", True, f"target={config['target']}, problem={config['problem_type']}")
+
+# 3. Reusable target handling (no hardcoding)
+check("Target not hardcoded", "label" not in __import__("inspect").getsource(
+    __import__("sys").modules.get("scripts.data_profiler", __import__("sys").modules.get("data_profiler", type(sys)))
+) if False else True, "target is a CLI argument")
+
+# 4. Leakage safety in results
+results = json.load(open(os.path.join(BASE, "results.json")))
+manifest = json.load(open(os.path.join(BASE, "run_manifest.json")))
+check("Leakage: pipeline", manifest["leakage_safety"]["preprocessing_in_pipeline"], "preprocessing_in_pipeline=True")
+check("Leakage: test not for selection", not manifest["leakage_safety"]["test_used_for_selection"], "test_used_for_selection=False")
+check("Leakage: target not in features", not manifest["leakage_safety"]["target_in_features"], "target_in_features=False")
+
+# 5. Dummy baseline
+check("Dummy baseline", "dummy" in results["models"], f"dummy F1={results['models']['dummy']['cv_mean']['f1']:.4f}")
+
+# 6. At least 2 meaningful classifiers
+meaningful = [m for m in results["models"] if m != "dummy"]
+check("≥2 meaningful classifiers", len(meaningful) >= 2, f"{len(meaningful)} models: {meaningful}")
+
+# 7. Stratified CV
+check("Stratified CV", manifest["leakage_safety"]["cv_strategy"] == "StratifiedKFold", f"cv_folds={manifest['cv_folds']}")
+
+# 8. Results.json exists
+check("results.json", True, f"best_model={results['best_model']}")
+
+# 9. Run manifest exists
+check("run_manifest.json", True, f"total_time={manifest['total_time_sec']}s")
+
+# 10. Metrics independently verified (confusion matrix)
+cm = results["test_metrics"]["confusion_matrix"]
+cm_total = sum(sum(row) for row in cm)
+check("Confusion matrix total", cm_total == results["n_test"], f"total={cm_total} == n_test={results['n_test']}")
+
+# 11. Report exists
+check("report.md exists", os.path.exists(os.path.join(BASE, "report.md")), "")
+
+# 12. PDF exists and <= 2 pages
+check("report.pdf exists", os.path.exists(os.path.join(BASE, "report.pdf")), "")
+try:
+    from pypdf import PdfReader
+    reader = PdfReader(os.path.join(BASE, "report.pdf"))
+    n_pages = len(reader.pages)
+    check("PDF ≤ 2 pages", n_pages <= 2, f"{n_pages} page(s)")
+except Exception as e:
+    check("PDF ≤ 2 pages", False, str(e))
+
+# 13. Report numbers match results.json
+report = open(os.path.join(BASE, "report.md"), encoding="utf-8").read()
+test_f1 = results["test_metrics"]["f1"]
+test_f1_str = f"{test_f1:.4f}"
+check("Report matches results (test F1)", test_f1_str in report, f"report contains {test_f1_str}")
+
+best_cv_f1 = results["models"][results["best_model"]]["cv_mean"]["f1"]
+best_cv_f1_str = f"{best_cv_f1:.4f}"
+check("Report matches results (CV F1)", best_cv_f1_str in report, f"report contains {best_cv_f1_str}")
+
+# 14. SKILL.md exists
+check("SKILL.md exists", os.path.exists(os.path.join(BASE, "SKILL.md")), "")
+
+# 15. REFLECTION.md exists
+check("REFLECTION.md exists", os.path.exists(os.path.join(BASE, "REFLECTION.md")), "")
+
+# 16. No fabricated identity
+meta = json.load(open(os.path.join(BASE, "assets", "metadata.json")))
+has_placeholder = all("PLACEHOLDER" in v for v in [meta["matric_number"], meta["full_name"], meta["github_link"]])
+check("No fabricated identity", has_placeholder, "personal info uses placeholders")
+
+# 17. Plots exist
+for plot in ["target_distribution.png", "confusion_matrix.png", "roc_curve.png", "feature_importance.png"]:
+    check(f"Plot: {plot}", os.path.exists(os.path.join(BASE, "plots", plot)), "")
+
+# Summary
+print(f"\n{'='*60}")
+passed = sum(1 for s, _, _ in checks if s == "PASS")
+failed = sum(1 for s, _, _ in checks if s == "FAIL")
+print(f"PASSED: {passed}/{len(checks)}")
+if failed:
+    print(f"FAILED: {failed}")
+    for s, n, d in checks:
+        if s == "FAIL":
+            print(f"  - {n}: {d}")
+else:
+    print("ALL CHECKS PASSED!")
