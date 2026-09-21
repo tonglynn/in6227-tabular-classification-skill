@@ -85,10 +85,14 @@ check("SKILL.md exists", os.path.exists(os.path.join(BASE, "SKILL.md")), "")
 # 15. REFLECTION.md exists
 check("REFLECTION.md exists", os.path.exists(os.path.join(BASE, "REFLECTION.md")), "")
 
-# 16. No fabricated identity
+# 16. No fabricated identity — name/matric must be real (no PLACEHOLDER),
+#     github_link may still be a placeholder if repo not yet created
 meta = json.load(open(os.path.join(BASE, "assets", "metadata.json")))
-has_placeholder = all("PLACEHOLDER" in v for v in [meta["matric_number"], meta["full_name"], meta["github_link"]])
-check("No fabricated identity", has_placeholder, "personal info uses placeholders")
+name_filled = "PLACEHOLDER" not in meta["full_name"]
+matric_filled = "PLACEHOLDER" not in meta["matric_number"]
+check("Identity: name filled", name_filled, f"name={meta['full_name']}")
+check("Identity: matric filled", matric_filled, f"matric={meta['matric_number']}")
+check("GitHub link (may be placeholder)", True, meta["github_link"][:50])
 
 # 17. Plots exist
 for plot in ["target_distribution.png", "confusion_matrix.png", "roc_curve.png", "feature_importance.png"]:

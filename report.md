@@ -1,6 +1,6 @@
 # IN6227-Assignment-1 Variant-2
 
-**[PLACEHOLDER: Enter your full name], [PLACEHOLDER: Enter your matric number]**  
+**LIN TONG, G2608825L**  
 IN6227-Assignment-1
 
 ---
@@ -71,8 +71,8 @@ The SKILL successfully builds a reusable, leakage-safe tabular classification pi
 
 ## VITA
 
-**Name:** [PLACEHOLDER: Enter your full name]  
-**Matric number:** [PLACEHOLDER: Enter your matric number]  
+**Name:** LIN TONG  
+**Matric number:** G2608825L  
 **Model (LLM):** GLM-5.2  
 **LLM interface:** TraeCode (Codex)  
 **GitHub:** [PLACEHOLDER: Enter your GitHub repository link]
