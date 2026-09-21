@@ -1,15 +1,18 @@
 #!/usr/bin/env python3
 """Populate the official IN6227-Reports-Template.doc with report content.
 
-Strategy: Open the template copy via Word COM. For each section, find
-the heading, then replace the body paragraphs directly by setting
-Range.Text (preserves style). Delete excess paragraphs; insert new ones
-via Selection.TypeText if needed. This avoids the InsertAfter merge issue.
+This script copies the official template, opens it via Word COM, and fills
+content into the template's existing paragraphs/styles. This preserves:
+- A4 page size, margins
+- Two-column layout (Sections 2 & 3)
+- Times New Roman 10pt body, 24pt title, 11pt author
+- Header: "IN6227 DATA MINING 2023, WKWSCI"
+- Footer: [DOCUMENT TITLE] left, [AUTHOR NAME] right (Times New Roman 9pt blue)
+- All template paragraph styles
 """
 import json
 import os
 import shutil
-import sys
 
 import win32com.client as win32
 
@@ -29,21 +32,6 @@ def load_json(path):
         return json.load(f)
 
 
-def build_cv_table_text(results):
-    models = results["models"]
-    lines = []
-    lines.append("Model\tAccuracy\tPrecision\tRecall\tF1\tROC-AUC\tPR-AUC")
-    for name, data in models.items():
-        m = data["cv_mean"]
-        marker = " (best)" if name == results.get("best_model") else ""
-        lines.append(
-            f"{name}{marker}\t{m['accuracy']:.4f}\t{m['precision']:.4f}\t"
-            f"{m['recall']:.4f}\t{m['f1']:.4f}\t{m['roc_auc']:.4f}\t"
-            f"{m.get('pr_auc', 0):.4f}"
-        )
-    return "\n".join(lines)
-
-
 def replace_para_text(doc, para_idx_0based, new_text):
     """Replace text of paragraph at 0-based index, preserving style."""
     para = doc.Paragraphs(para_idx_0based + 1)
@@ -53,15 +41,15 @@ def replace_para_text(doc, para_idx_0based, new_text):
 
 
 def clear_para_text(doc, para_idx_0based):
-    """Clear text of paragraph at 0-based index, deleting the text content."""
+    """Clear text of paragraph at 0-based index."""
     para = doc.Paragraphs(para_idx_0based + 1)
     rng = para.Range
-    rng.End = rng.End - 1  # Exclude paragraph mark
-    rng.Delete()  # Delete the text content
+    rng.End = rng.End - 1
+    rng.Delete()
 
 
 def find_heading(doc, heading_text, start_from=0):
-    """Find a heading paragraph by text (contains match, short text)."""
+    """Find a heading paragraph by text."""
     for i in range(start_from, doc.Paragraphs.Count):
         text = doc.Paragraphs(i + 1).Range.Text.strip()
         if heading_text.lower() in text.lower() and len(text) <= len(heading_text) + 5:
@@ -70,7 +58,7 @@ def find_heading(doc, heading_text, start_from=0):
 
 
 def find_next_heading(doc, headings, start_from):
-    """Find the next heading from a list, starting from start_from."""
+    """Find the next heading from a list."""
     for i in range(start_from, doc.Paragraphs.Count):
         text = doc.Paragraphs(i + 1).Range.Text.strip()
         for h in headings:
@@ -94,24 +82,16 @@ def main():
     shutil.copy2(TEMPLATE_SRC, TEMPLATE_COPY)
     print(f"[populate] Copied template -> {TEMPLATE_COPY}")
 
-    # --- Open in Word ---
     word = win32.Dispatch("Word.Application")
     word.Visible = False
     word.DisplayAlerts = False
     doc = word.Documents.Open(TEMPLATE_COPY)
     print(f"[populate] Opened, {doc.Paragraphs.Count} paragraphs")
 
-    # --- Section headings in order ---
-    sections = [
-        "INTRODUCTION",
-        "METHODS OR PROCEDURES",
-        "RESULTS",
-        "DISCUSSION",
-        "CONCLUSION",
-        "REFERENCES",
-    ]
+    sections = ["INTRODUCTION", "METHODS OR PROCEDURES", "RESULTS",
+                "DISCUSSION", "CONCLUSION", "REFERENCES"]
 
-    # --- Replace title ---
+    # --- 1. TITLE BLOCK ---
     title_text = "IN6227 Assignment 1, Variant 2: Tabular Classification SKILL"
     for i in range(doc.Paragraphs.Count):
         text = doc.Paragraphs(i + 1).Range.Text.strip()
@@ -120,10 +100,9 @@ def main():
             print(f"[populate] Replaced title at P{i}")
             break
 
-    # --- Replace author line ---
-    # The author paragraph contains BOTH "Author Name, Matric Number"
-    # AND "IN6227-2023-Assignment-{1,2,3}" separated by a vertical tab
-    # (Chr(11) = \x0b = line break within same paragraph)
+    # --- 2. AUTHOR + ASSIGNMENT LINE ---
+    # Template P1: "Author Name, Matric Number\x0bIN6227-2023-Assignment-{1,2,3}"
+    # \x0b = vertical tab = line break within same paragraph
     author_name_only = f"{meta['full_name']}, {meta['matric_number']}"
     author_text = f"{author_name_only}\x0bIN6227-2023-Assignment-1"
     for i in range(doc.Paragraphs.Count):
@@ -133,22 +112,10 @@ def main():
             print(f"[populate] Replaced author+assignment at P{i}")
             break
 
-    # --- Set document properties (good practice) ---
-    try:
-        doc.BuiltInDocumentProperties("Title").Value = title_text
-        print(f"[populate] Set document Title property: '{title_text}'")
-    except Exception as e:
-        print(f"[populate] WARNING: could not set Title property: {e}")
-    try:
-        doc.BuiltInDocumentProperties("Author").Value = author_name_only
-        print(f"[populate] Set document Author property: '{author_name_only}'")
-    except Exception as e:
-        print(f"[populate] WARNING: could not set Author property: {e}")
-
-    # --- Replace footer placeholder text with actual values ---
-    # The footer has literal text [DOCUMENT TITLE] and [AUTHOR NAME]
-    # (not Word field codes — they're plain text placeholders)
-    # Replace them with the actual title and author
+    # --- 3. FOOTER: left=title, right=author using tab stops ---
+    # Template footer has: [DOCUMENT TITLE] on left, [AUTHOR NAME] on right
+    # using tab stops (center at 212.6pt, right at 425.2pt)
+    # The footer text uses \x07 (tab) to position text
     for sec in doc.Sections:
         for fi in range(1, 4):
             ftr = sec.Footers(fi)
@@ -157,13 +124,13 @@ def main():
             ftr_range = ftr.Range
             ftr_text = ftr_range.Text
             if "[DOCUMENT TITLE]" in ftr_text or "[AUTHOR NAME]" in ftr_text:
-                # Directly replace text in the footer
+                # Replace placeholders preserving tab structure
                 new_text = ftr_text.replace("[DOCUMENT TITLE]", title_text)
                 new_text = new_text.replace("[AUTHOR NAME]", author_name_only)
                 ftr_range.Text = new_text
-                print(f"[populate] Replaced footer placeholders in Section {sec.Index} Footer {fi}")
+                print(f"[populate] Replaced footer in Section {sec.Index} Footer {fi}")
 
-    # --- Build section body texts ---
+    # --- 4. SECTION BODIES ---
     intro_body = (
         f"This report presents an end-to-end tabular classification workflow "
         f"applied to the dataset ({profile['n_samples']} rows, "
@@ -195,10 +162,8 @@ def main():
         f"the full training set and evaluated once on the held-out test set."
     )
 
-    cv_table = build_cv_table_text(results)
     results_body = (
-        f"Cross-validation results (5-fold, stratified):\n{cv_table}\n"
-        f"\nTest-set performance (best model: {results['best_model']}): "
+        f"Test-set performance (best model: {results['best_model']}): "
         f"accuracy={test_m['accuracy']:.4f}, "
         f"precision={test_m['precision']:.4f}, "
         f"recall={test_m['recall']:.4f}, "
@@ -220,13 +185,12 @@ def main():
         f"CV F1 ({best['f1']:.4f}), indicating stable generalisation."
     )
 
+    # CONCLUSION: NO metadata here — metadata goes in VITA only
     conclusion_body = (
         f"The SKILL successfully builds a reusable, leakage-safe tabular "
         f"classification pipeline. RandomForest was selected as the best "
         f"model by CV F1, though the margin over LogisticRegression was "
-        f"small. All numerical values are pulled from results.json. "
-        f"Model: {meta['model_name']}; LLM interface: "
-        f"{meta['llm_interface']}; GitHub: {meta['github_link']}."
+        f"small. All numerical values are pulled from results.json."
     )
 
     section_bodies = {
@@ -237,67 +201,126 @@ def main():
         "CONCLUSION": conclusion_body,
     }
 
-    # --- Process each section: replace body paragraphs ---
     for sec_idx, heading in enumerate(sections):
         heading_idx = find_heading(doc, heading)
         if heading_idx is None:
             print(f"[populate] WARNING: heading '{heading}' not found")
             continue
 
-        # Find the next heading
         next_headings = sections[sec_idx + 1:]
         next_idx = find_next_heading(doc, next_headings, heading_idx + 1)
 
-        # Collect body paragraph indices (between heading and next heading)
         body_indices = []
         for i in range(heading_idx + 1, next_idx):
             text = doc.Paragraphs(i + 1).Range.Text.strip()
-            if text:  # Only non-empty paragraphs
+            if text:
                 body_indices.append(i)
 
         print(f"[populate] '{heading}': heading at P{heading_idx}, "
-              f"body paras: {body_indices}, next heading at P{next_idx}")
+              f"body paras: {body_indices}, next at P{next_idx}")
 
         if heading in section_bodies:
             body_text = section_bodies[heading]
-
             if body_indices:
-                # Clear excess body paragraphs FIRST (reverse order to
-                # keep indices stable), THEN replace the first one.
-                # This avoids index shifts from \n creating new paragraphs.
+                # Clear excess paragraphs in reverse order
                 for idx in reversed(body_indices[1:]):
                     clear_para_text(doc, idx)
-
-                # Replace first body paragraph with new text
+                # Replace first body paragraph
                 replace_para_text(doc, body_indices[0], body_text)
-
-                # Apply PARAGRAPH (no indent) style to the first body para
-                try:
-                    doc.Paragraphs(body_indices[0] + 1).Style = doc.Styles("PARAGRAPH (no indent)")
-                except:
-                    try:
-                        doc.Paragraphs(body_indices[0] + 1).Style = doc.Styles("PARAGRAPH")
-                    except:
-                        pass
-
                 print(f"[populate] Replaced body for '{heading}' ({len(body_text)} chars)")
             else:
-                # No body paragraphs found — need to insert one
-                # Use Selection to type text after heading
                 heading_para = doc.Paragraphs(heading_idx + 1)
                 rng = doc.Range(heading_para.Range.End, heading_para.Range.End)
                 sel = word.Selection
                 sel.SetRange(rng.Start, rng.Start)
                 sel.TypeParagraph()
                 sel.TypeText(body_text)
-                # Apply style
-                try:
-                    sel.Style = doc.Styles("PARAGRAPH (no indent)")
-                except:
-                    pass
                 print(f"[populate] Inserted body for '{heading}' ({len(body_text)} chars)")
 
-    # --- Replace references ---
+    # --- 5. RESULTS: insert a proper Word TABLE ---
+    # Two-column layout means each column is ~8cm wide.
+    # A 7-column table won't fit. Use 4 columns: Model, F1, AUC, Acc
+    results_idx = find_heading(doc, "RESULTS")
+    if results_idx is not None:
+        for i in range(results_idx + 1, doc.Paragraphs.Count):
+            text = doc.Paragraphs(i + 1).Range.Text.strip()
+            if text and "RESULTS" not in text.upper() and "DISCUSSION" not in text.upper():
+                body_para = doc.Paragraphs(i + 1)
+                insert_range = doc.Range(body_para.Range.End, body_para.Range.End)
+                insert_range.InsertBefore("\r")
+
+                # Compact 4-column table that fits in one column
+                models = results["models"]
+                table_data = [
+                    ["Model", "Acc", "F1", "AUC"]
+                ]
+                for name, data in models.items():
+                    m = data["cv_mean"]
+                    marker = "*" if name == results.get("best_model") else ""
+                    # Shorten model names
+                    short_name = name.replace("logistic_regression", "log_reg")
+                    table_data.append([
+                        short_name + marker,
+                        f"{m['accuracy']:.3f}",
+                        f"{m['f1']:.3f}",
+                        f"{m['roc_auc']:.3f}",
+                    ])
+
+                tbl_range = doc.Range(body_para.Range.End, body_para.Range.End)
+                tbl_range.Collapse(1)
+
+                n_rows = len(table_data)
+                n_cols = len(table_data[0])
+                tbl = doc.Tables.Add(tbl_range, n_rows, n_cols)
+
+                for ri, row in enumerate(table_data):
+                    for ci, val in enumerate(row):
+                        cell = tbl.Cell(ri + 1, ci + 1)
+                        cell.Range.Text = val
+                        cell.Range.Font.Name = "Times New Roman"
+                        cell.Range.Font.Size = 9
+                        if ri == 0:
+                            cell.Range.Font.Bold = True
+
+                tbl.Borders.Enable = True
+                # Set column widths to fit in one column (~8cm = 227pt)
+                # 4 columns: Model=80pt, Acc=50pt, F1=50pt, AUC=50pt = 230pt
+                try:
+                    tbl.Columns(1).Width = 80
+                    tbl.Columns(2).Width = 50
+                    tbl.Columns(3).Width = 50
+                    tbl.Columns(4).Width = 50
+                except:
+                    pass
+
+                print(f"[populate] Inserted results table ({n_rows}x{n_cols})")
+                break
+
+    # --- 6. CONFUSION MATRIX: small image within column ---
+    cm_path = os.path.join(PLOTS_DIR, "confusion_matrix.png")
+    if os.path.exists(cm_path) and results_idx is not None:
+        # Find the table we just inserted, then add image after it
+        for i in range(results_idx + 1, doc.Paragraphs.Count):
+            text = doc.Paragraphs(i + 1).Range.Text.strip()
+            if "DISCUSSION" in text.upper():
+                # Insert image BEFORE the DISCUSSION heading
+                disc_para = doc.Paragraphs(i + 1)
+                img_range = doc.Range(disc_para.Range.Start, disc_para.Range.Start)
+                img_range.InsertBefore("\r")
+                # Now insert image in the new paragraph
+                new_para = doc.Paragraphs(i + 1)  # shifted
+                img_sel = word.Selection
+                img_sel.SetRange(new_para.Range.Start, new_para.Range.Start)
+                # Add image with small width to fit in one column
+                # Column width ≈ (page_width - margins - gap) / 2 ≈ 8cm ≈ 3.15 inch
+                # Use 5cm ≈ 2 inch to be safe
+                shape = img_sel.InlineShapes.AddPicture(cm_path)
+                shape.Width = 113  # 4cm in points (1cm ≈ 28.35pt)
+                shape.Height = 85  # maintain aspect ratio ≈ 3cm
+                print(f"[populate] Inserted confusion matrix (4cm x 3cm)")
+                break
+
+    # --- 7. REFERENCES ---
     for i in range(doc.Paragraphs.Count):
         text = doc.Paragraphs(i + 1).Range.Text.strip()
         if text.startswith("[1]") and "Seeger" in text:
@@ -314,19 +337,17 @@ def main():
             print(f"[populate] Replaced reference [2]")
             break
 
-    # --- Insert VITA content ---
-    # The VITA section is at the end of the template, possibly with an
-    # empty paragraph using the VITA style. Search by style name.
+    # --- 8. VITA: put all metadata here (not in CONCLUSION) ---
     for i in range(doc.Paragraphs.Count):
         para = doc.Paragraphs(i + 1)
         style_name = para.Style.NameLocal if para.Style else ""
         if "VITA" in style_name.upper():
-            # Type content into this paragraph
             rng = para.Range
-            rng.End = rng.End - 1  # Exclude paragraph mark
+            rng.End = rng.End - 1
             vita_text = (
                 f"Name: {meta['full_name']}\r"
                 f"Matric number: {meta['matric_number']}\r"
+                f"Assignment: IN6227-2023-Assignment-1, Variant 2\r"
                 f"Model (LLM): {meta['model_name']}\r"
                 f"LLM interface: {meta['llm_interface']}\r"
                 f"GitHub: {meta['github_link']}"
@@ -334,46 +355,8 @@ def main():
             rng.Text = vita_text
             print(f"[populate] Inserted VITA content at P{i} (style: {style_name})")
             break
-    else:
-        # Fallback: search by text
-        for i in range(doc.Paragraphs.Count):
-            text = doc.Paragraphs(i + 1).Range.Text.strip()
-            if "VITA" in text.upper() and len(text) <= 10:
-                vita_para = doc.Paragraphs(i + 1)
-                rng = doc.Range(vita_para.Range.End, vita_para.Range.End)
-                sel = word.Selection
-                sel.SetRange(rng.Start, rng.Start)
-                sel.TypeParagraph()
-                sel.TypeText(
-                    f"Name: {meta['full_name']}\r"
-                    f"Matric number: {meta['matric_number']}\r"
-                    f"Model (LLM): {meta['model_name']}\r"
-                    f"LLM interface: {meta['llm_interface']}\r"
-                    f"GitHub: {meta['github_link']}"
-                )
-                print(f"[populate] Inserted VITA content at P{i} (text match)")
-                break
 
-    # --- Insert confusion matrix image after RESULTS body ---
-    cm_path = os.path.join(PLOTS_DIR, "confusion_matrix.png")
-    if os.path.exists(cm_path):
-        results_idx = find_heading(doc, "RESULTS")
-        if results_idx is not None:
-            # Find the body paragraph after RESULTS
-            for i in range(results_idx + 1, doc.Paragraphs.Count):
-                text = doc.Paragraphs(i + 1).Range.Text.strip()
-                if text and "RESULTS" not in text and "DISCUSSION" not in text:
-                    # Insert image after this paragraph
-                    body_para = doc.Paragraphs(i + 1)
-                    rng = doc.Range(body_para.Range.End, body_para.Range.End)
-                    sel = word.Selection
-                    sel.SetRange(rng.Start, rng.Start)
-                    sel.TypeParagraph()
-                    sel.InlineShapes.AddPicture(cm_path)
-                    print(f"[populate] Inserted confusion matrix image after RESULTS body")
-                    break
-
-    # --- Save as .docx ---
+    # --- Save and export ---
     if os.path.exists(DOCX_OUT):
         try:
             os.remove(DOCX_OUT)
@@ -382,39 +365,28 @@ def main():
     doc.SaveAs(DOCX_OUT, FileFormat=16)
     print(f"[populate] Saved .docx -> {DOCX_OUT}")
 
-    # --- Export as PDF ---
     if os.path.exists(PDF_OUT):
         try:
             os.remove(PDF_OUT)
         except:
             pass
     doc.ExportAsFixedFormat(
-        PDF_OUT,
-        ExportFormat=17,
-        OpenAfterExport=False,
-        OptimizeFor=0,
-        Range=0,
-        Item=0,
-        IncludeDocProps=True,
-        KeepIRM=True,
-        CreateBookmarks=0,
-        DocStructureTags=True,
-        BitmapMissingFonts=True,
-        UseISO19005_1=False,
+        PDF_OUT, ExportFormat=17, OpenAfterExport=False,
+        OptimizeFor=0, Range=0, Item=0, IncludeDocProps=True,
+        KeepIRM=True, CreateBookmarks=0, DocStructureTags=True,
+        BitmapMissingFonts=True, UseISO19005_1=False,
     )
     print(f"[populate] Exported PDF -> {PDF_OUT}")
 
     doc.Close(False)
     word.Quit()
 
-    # Verify page count
     try:
         from pypdf import PdfReader
         reader = PdfReader(PDF_OUT)
         n_pages = len(reader.pages)
-    except Exception:
+    except:
         n_pages = "?"
-
     size_kb = os.path.getsize(PDF_OUT) / 1024
     print(f"[populate] PDF: {size_kb:.0f} KB, {n_pages} page(s)")
     if isinstance(n_pages, int) and n_pages > 2:
