@@ -112,29 +112,56 @@ def main():
     ]
 
     # --- Replace title ---
+    title_text = "IN6227 Assignment 1, Variant 2: Tabular Classification SKILL"
     for i in range(doc.Paragraphs.Count):
         text = doc.Paragraphs(i + 1).Range.Text.strip()
         if "Reports Template: Title Here" in text:
-            replace_para_text(doc, i, "IN6227 Assignment 1, Variant 2: Tabular Classification SKILL")
+            replace_para_text(doc, i, title_text)
             print(f"[populate] Replaced title at P{i}")
             break
 
     # --- Replace author line ---
+    # The author paragraph contains BOTH "Author Name, Matric Number"
+    # AND "IN6227-2023-Assignment-{1,2,3}" separated by a vertical tab
+    # (Chr(11) = \x0b = line break within same paragraph)
+    author_name_only = f"{meta['full_name']}, {meta['matric_number']}"
+    author_text = f"{author_name_only}\x0bIN6227-2023-Assignment-1"
     for i in range(doc.Paragraphs.Count):
         text = doc.Paragraphs(i + 1).Range.Text.strip()
         if "Author Name, Matric Number" in text:
-            new_author = f"{meta['full_name']}, {meta['matric_number']}"
-            replace_para_text(doc, i, new_author)
-            print(f"[populate] Replaced author at P{i}")
+            replace_para_text(doc, i, author_text)
+            print(f"[populate] Replaced author+assignment at P{i}")
             break
 
-    # Also replace the assignment line below it
-    for i in range(doc.Paragraphs.Count):
-        text = doc.Paragraphs(i + 1).Range.Text.strip()
-        if "IN6227-2023-Assignment" in text:
-            replace_para_text(doc, i, f"{meta['assignment']}-{meta['variant']}")
-            print(f"[populate] Replaced assignment line at P{i}")
-            break
+    # --- Set document properties (good practice) ---
+    try:
+        doc.BuiltInDocumentProperties("Title").Value = title_text
+        print(f"[populate] Set document Title property: '{title_text}'")
+    except Exception as e:
+        print(f"[populate] WARNING: could not set Title property: {e}")
+    try:
+        doc.BuiltInDocumentProperties("Author").Value = author_name_only
+        print(f"[populate] Set document Author property: '{author_name_only}'")
+    except Exception as e:
+        print(f"[populate] WARNING: could not set Author property: {e}")
+
+    # --- Replace footer placeholder text with actual values ---
+    # The footer has literal text [DOCUMENT TITLE] and [AUTHOR NAME]
+    # (not Word field codes — they're plain text placeholders)
+    # Replace them with the actual title and author
+    for sec in doc.Sections:
+        for fi in range(1, 4):
+            ftr = sec.Footers(fi)
+            if not ftr:
+                continue
+            ftr_range = ftr.Range
+            ftr_text = ftr_range.Text
+            if "[DOCUMENT TITLE]" in ftr_text or "[AUTHOR NAME]" in ftr_text:
+                # Directly replace text in the footer
+                new_text = ftr_text.replace("[DOCUMENT TITLE]", title_text)
+                new_text = new_text.replace("[AUTHOR NAME]", author_name_only)
+                ftr_range.Text = new_text
+                print(f"[populate] Replaced footer placeholders in Section {sec.Index} Footer {fi}")
 
     # --- Build section body texts ---
     intro_body = (
