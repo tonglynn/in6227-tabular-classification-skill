@@ -6,7 +6,9 @@
 
 The SKILL incorporates several **designed-in** oversight mechanisms —
 i.e., safeguards built into the workflow that would constrain a human
-practitioner in the same way:
+practitioner in the same way. These are gates in the *design*; they
+are enforced automatically by the code, not manually approved by a
+human at each step.
 
 | Gate | Where enforced | What it prevents |
 |---|---|---|
@@ -18,8 +20,18 @@ practitioner in the same way:
 | **No manual metric entry** | `generate_report.py` — all values come from `results.json` | Fabricated or altered performance numbers |
 | **PDF page-count check** | `render_pdf.py` — verifies ≤ 2 pages via `pypdf` | Over-length report |
 | **Generalization test** | `tests/test_generalization.py` — runs pipeline on Breast Cancer & Iris | Hard-coded dataset logic |
+| **Official template alignment** | `render_pdf.py` — Times-Roman 10pt, sections: INTRODUCTION / METHODS / RESULTS / DISCUSSION / CONCLUSION / REFERENCES / VITA, running header | Ignoring official report template |
+
+**Important distinction:** These gates are *designed into the SKILL* —
+they run automatically when the scripts execute. The student did **not**
+manually sit at each gate and approve/reject decisions during this
+automated implementation. The gates are code-enforced safeguards, not
+human-in-the-loop checkpoints that were triggered one by one.
 
 ### Oversight actually exercised during this implementation
+
+The following checks were *actually performed* (by the AI agent, not by
+the student) during the automated run:
 
 - The AI agent inspected the existing project state (3 files only),
   classified each component as MISSING, and proceeded to build from
@@ -34,6 +46,11 @@ practitioner in the same way:
   categoricals — consistent with the leakage rules.
 - The training script was executed end-to-end; CV and test metrics were
   printed to the console and cross-checked against `results.json`.
+- The official `IN6227-Reports-Template.doc` was inspected (via Word COM
+  automation) to extract its required sections (INTRODUCTION, METHODS OR
+  PROCEDURES, RESULTS, DISCUSSION, CONCLUSION, REFERENCES, VITA) and
+  formatting (Times New Roman 10pt). The report template was then
+  restructured to match.
 - The report was generated from `results.json` and verified to contain
   matching numbers (see §3 below).
 - The PDF page count was verified to be 2.
@@ -97,12 +114,15 @@ practitioner in the same way:
 | RandomForest | 0.664 | 0.889 | 0.663 | 0.889 |
 | GradientBoosting | 0.626 | 0.891 | — | — |
 
-RandomForest wins by a small margin on F1. LogisticRegression has
+RandomForest achieved the highest mean CV F1, but its advantage over
+LogisticRegression was **small** (ΔF1 = 0.004). LogisticRegression has
 comparable AUC but higher recall (0.849 vs 0.715) at the cost of lower
-precision (0.540 vs 0.620). If recall is prioritised (e.g., the "yes"
-class represents a costly event), LogisticRegression with
-`class_weight="balanced"` might be preferred despite the slightly lower
-F1.
+precision (0.540 vs 0.620). If recall on the minority class is
+prioritised (e.g., the "yes" class represents a costly event),
+LogisticRegression with `class_weight="balanced"` might be preferred
+despite the slightly lower F1. The two models are comparable in
+discriminative power; the choice between them depends on the
+precision-recall trade-off preferred by the application.
 
 ## 3. Trustworthiness
 
@@ -178,9 +198,11 @@ altered.
 | Leakage prevention | All preprocessing inside Pipeline; CV refits per fold; test used once |
 | Metric correctness | Computed by sklearn `cross_validate` and `cross_val_predict`; independently verified |
 | Report consistency | All report numbers trace to `results.json`; verified cell-by-cell |
-| Reproducibility | `random_state=42` everywhere; `run_manifest.json` records environment |
+| Official template alignment | Report uses INTRODUCTION / METHODS / RESULTS / DISCUSSION / CONCLUSION / REFERENCES / VITA sections; Times-Roman 10pt; running header matches `IN6227-Reports-Template.doc` |
+| Reproducibility | `random_state=42` everywhere; `run_manifest.json` records actual Python/sklearn/numpy/pandas versions |
 | Generalization | Tested on 2 additional datasets (binary + multiclass) without code changes |
 | No fabrication | Personal info uses clear placeholders; no invented identity, GitHub link, or version |
+| Model comparison honesty | Report does not overstate RF's advantage over LogReg (ΔF1=0.004, described as "small") |
 
 ---
 

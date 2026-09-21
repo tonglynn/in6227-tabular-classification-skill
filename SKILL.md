@@ -121,8 +121,12 @@ python scripts/render_pdf.py \
     --plots-dir plots
 ```
 
-The PDF is compact (8-pt body, 15 mm margins) and verified to be **≤ 2
-pages**.
+The PDF is rendered with **Times-Roman 10-pt** body text (matching the
+official `IN6227-Reports-Template.doc` which specifies Times New Roman
+10-point), includes the running header "IN6227 DATA MINING 2023,
+WKWSCI", and is verified to be **≤ 2 pages**. The report structure
+follows the official template sections: INTRODUCTION, METHODS OR
+PROCEDURES, RESULTS, DISCUSSION, CONCLUSION, REFERENCES, VITA.
 
 ## 5. Leakage Rules (mandatory)
 
@@ -185,15 +189,22 @@ Run: `python tests/test_generalization.py`
 
 ## 10. Report Requirements
 
-The report must cover:
-1. Data Exploration & Cleaning
-2. Feature Selection / Engineering
-3. Model Training
-4. Evaluation & Comparison
-5. Findings & Discussion
+The report follows the official `IN6227-Reports-Template.doc` structure.
+The template's sections are mapped to the assignment's content
+requirements as follows:
 
-It must also include: matric number, full name, assignment identifier,
-variant, model name & version, LLM interface, GitHub repository link.
+| Official template section | Assignment content covered |
+|---|---|
+| **INTRODUCTION** | Data Exploration & Cleaning |
+| **METHODS OR PROCEDURES** | Feature Selection / Engineering + Model Training |
+| **RESULTS** | Evaluation & Comparison |
+| **DISCUSSION** | Findings & Discussion |
+| **CONCLUSION** | Summary |
+| **REFERENCES** | Numbered citations |
+| **VITA** | Matric number, full name, model name & version, LLM interface, GitHub link |
+
+Formatting: Times New Roman 10-pt font, running header "IN6227 DATA
+MINING 2023, WKWSCI", ≤ 2 pages.
 
 All numbers in the report come from `results.json` — never manually
 entered.  Use placeholders for missing personal information.

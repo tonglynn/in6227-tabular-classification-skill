@@ -94,6 +94,29 @@ check("No fabricated identity", has_placeholder, "personal info uses placeholder
 for plot in ["target_distribution.png", "confusion_matrix.png", "roc_curve.png", "feature_importance.png"]:
     check(f"Plot: {plot}", os.path.exists(os.path.join(BASE, "plots", plot)), "")
 
+# 18. Official template sections present in report.md
+required_sections = ["INTRODUCTION", "METHODS OR PROCEDURES", "RESULTS",
+                     "DISCUSSION", "CONCLUSION", "REFERENCES", "VITA"]
+for sec in required_sections:
+    check(f"Official template section: {sec}", sec in report, "")
+
+# 19. Dummy strategy consistency (code == report == SKILL.md == references)
+import re as _re
+train_eval_src = open(os.path.join(BASE, "scripts", "train_eval.py"), encoding="utf-8").read()
+dummy_match = _re.search(r'DummyClassifier\(([^)]+)\)', train_eval_src)
+dummy_strategy_in_code = "stratified" in (dummy_match.group(1) if dummy_match else "")
+check("Dummy strategy: code uses stratified", dummy_strategy_in_code, "")
+check("Dummy strategy: report says stratified", "strategy=stratified" in report, "")
+skill_md = open(os.path.join(BASE, "SKILL.md"), encoding="utf-8").read()
+check("Dummy strategy: SKILL.md says stratified", 'strategy="stratified"' in skill_md, "")
+
+# 20. Report does not claim dramatic superiority
+check("No 'dramatically' claim", "dramatically" not in report.lower(), "RF vs LogReg described as small advantage")
+
+# 21. Environment consistency
+check("Manifest records sklearn version", "sklearn" in manifest["environment"], f"sklearn={manifest['environment']['sklearn']}")
+check("Manifest records python version", "python" in manifest["environment"], f"python={manifest['environment']['python']}")
+
 # Summary
 print(f"\n{'='*60}")
 passed = sum(1 for s, _, _ in checks if s == "PASS")

@@ -52,12 +52,15 @@ def main():
     tgt = profile["target"]
     test_metrics = results.get("test_metrics", {})
     dummy = results["models"].get("dummy", {}).get("cv_mean", {})
-    best = results["models"].get(results.get("best_model", ""), {}).get("cv_mean", {})
+    best_model_name = results.get("best_model", "")
+    best = results["models"].get(best_model_name, {}).get("cv_mean", {})
+    lr = results["models"].get("logistic_regression", {}).get("cv_mean", {})
 
     ctx = {
-        # Metadata
-        "assignment": meta["assignment"],
-        "variant": meta["variant"],
+        # Metadata — official template fields
+        "title": f"{meta['assignment']} {meta['variant']}",
+        "author_line": f"{meta['full_name']}, {meta['matric_number']}",
+        "assignment_line": f"{meta['assignment']}",
         "full_name": meta["full_name"],
         "matric_number": meta["matric_number"],
         "model_name": meta["model_name"],
@@ -80,8 +83,10 @@ def main():
         "duplicate_rows": profile.get("duplicate_rows", 0),
         # Results
         "cv_table": build_cv_table(results),
-        "best_model": results.get("best_model", "N/A"),
+        "best_model": best_model_name,
         "best_cv_f1": f"{best.get('f1', 0):.4f}",
+        "lr_cv_f1": f"{lr.get('f1', 0):.4f}",
+        "f1_delta": f"{best.get('f1', 0) - lr.get('f1', 0):.4f}",
         "dummy_accuracy": f"{dummy.get('accuracy', 0):.4f}",
         "dummy_f1": f"{dummy.get('f1', 0):.4f}",
         # Test metrics

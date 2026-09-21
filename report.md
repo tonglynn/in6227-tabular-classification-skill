@@ -1,44 +1,41 @@
-# IN6227-Assignment-1 — Variant-2
+# IN6227-Assignment-1 Variant-2
 
-**Name:** [PLACEHOLDER: Enter your full name]  
-**Matric number:** [PLACEHOLDER: Enter your matric number]  
-**Model (LLM):** GLM-5.2  
-**LLM interface:** TraeCode (Codex)  
-**GitHub:** [PLACEHOLDER: Enter your GitHub repository link]
+**[PLACEHOLDER: Enter your full name], [PLACEHOLDER: Enter your matric number]**  
+IN6227-Assignment-1
 
 ---
 
-## 1. Data Exploration & Cleaning
+## INTRODUCTION
 
-The dataset **train** contains **31112** rows and **15** features. The target variable is **`label`** with 2 classes: no, yes.
+This report presents an end-to-end tabular classification workflow applied to the **train** dataset (31112 rows, 15 features). The target variable is **`label`** with 2 classes: no, yes. Class distribution (train): no=23645, yes=7464, yielding an imbalance ratio of 3.168:1.
 
-Class distribution (train): no=23645, yes=7464 (imbalance ratio 3.168:1).
+The data contains 50 missing values (0.01% of cells). Rows with missing target were dropped (3 dropped); 0 duplicate rows were found. **Column types:** 7 numeric, 8 categorical. The goal is to build a leakage-safe, reproducible classification pipeline and compare multiple models.
 
-**Column types:** 7 numeric, 8 categorical. Total missing values: 50 (0.01% of cells). Rows with missing target were dropped (3 dropped). No duplicate rows were removed (0 found).
+## METHODS OR PROCEDURES
 
-## 2. Feature Selection / Engineering
+### Preprocessing
 
-All 15 original features are retained — no manual feature selection is applied. The preprocessing is **leakage-safe**: every learned transformation (imputation, scaling, encoding) lives inside an sklearn `Pipeline` / `ColumnTransformer`.
+All learned preprocessing is embedded inside an sklearn `Pipeline` / `ColumnTransformer` so that during cross-validation the imputer, scaler, and encoder are refit on each training fold only — preventing data leakage.
 
-- **Numeric features** (7): median imputation → standard scaling.
-- **Categorical features** (8): most-frequent imputation → one-hot encoding (`handle_unknown="ignore"`).
+- **Numeric features** (7): median imputation, then standard scaling.
+- **Categorical features** (8): most-frequent imputation, then one-hot encoding (`handle_unknown="ignore"`).
 
-No new features are engineered; the data already contains derived fields (e.g. `composite_rank`).
+No manual feature selection is applied; all 15 original features are retained. No new features are engineered — the data already contains derived fields (e.g. `composite_rank`).
 
-## 3. Model Training
+### Models
 
 Four classifiers are trained inside identical preprocessing pipelines:
 
 | Model | Key hyper-parameters |
 |---|---|
-| DummyClassifier | strategy=stratified (baseline) |
+| DummyClassifier | strategy=stratified (no-information baseline) |
 | LogisticRegression | max_iter=1000, class_weight=balanced |
 | RandomForest | n_estimators=200, class_weight=balanced |
 | GradientBoosting | n_estimators=100, max_depth=3, lr=0.1 |
 
-**Cross-validation:** Stratified 5-fold (`random_state=42`). Model selection uses **mean CV F1**. The best model (**random_forest**) is then retrained on the full training set and evaluated **once** on the held-out test set.
+**Cross-validation:** Stratified 5-fold (`random_state=42`). Model selection uses **mean CV F1**. The best model is then retrained on the full training set and evaluated **once** on the held-out test set — the test set is never used for model selection or tuning. `class_weight="balanced"` is used for LogisticRegression and RandomForest to counter the 3.2:1 class imbalance; SMOTE is intentionally not applied.
 
-## 4. Evaluation & Comparison
+## RESULTS
 
 | Model | Accuracy | Precision | Recall | F1 | ROC-AUC | PR-AUC |
 |---|---|---|---|---|---|---|
@@ -52,12 +49,30 @@ Four classifiers are trained inside identical preprocessing pipelines:
 ![Confusion matrix](plots/confusion_matrix.png)
 ![ROC curve](plots/roc_curve.png)
 
-## 5. Findings & Discussion
+## DISCUSSION
 
-- **Best model:** random_forest, selected by CV F1=0.6641.
-- The Dummy baseline (accuracy≈0.6351) confirms that a no-information classifier cannot beat the majority class.
-- random_forest improves F1 from 0.2351 (dummy) to 0.6641 (CV) — a meaningful gain.
-- `class_weight="balanced"` is used for LogisticRegression and RandomForest to counter the 3.2:1 class imbalance, trading a small accuracy drop for substantially higher recall on the minority class.
-- SMOTE is intentionally **not** applied; `class_weight` suffices and avoids synthetic-sample leakage risks.
+- **Best model:** random_forest, selected by CV F1=0.6641. However, its advantage over LogisticRegression (CV F1=0.6602) was **small** (ΔF1=0.0039); the two models are comparable in discriminative power.
+- The Dummy baseline (accuracy≈0.6351, F1≈0.2351) confirms that a no-information classifier performs well below all meaningful models.
+- LogisticRegression achieves higher recall (0.849 vs 0.715) at the cost of lower precision (0.540 vs 0.620); if recall on the minority class is prioritised, LogisticRegression may be preferred despite its slightly lower F1.
+- `class_weight="balanced"` trades a small accuracy drop for substantially higher minority-class recall versus uniform weighting.
+- Test F1 (0.6631) closely matches CV F1 (0.6641), indicating stable generalisation without overfitting.
 
-All numerical values in this report are pulled directly from `results.json`; none are manually entered.
+## CONCLUSION
+
+The SKILL successfully builds a reusable, leakage-safe tabular classification pipeline. RandomForest was selected as the best model by CV F1, though the margin over LogisticRegression was small. All numerical values in this report are pulled directly from `results.json` — none are manually entered.
+
+## REFERENCES
+
+[1] Pedregosa, F. et al. (2011). Scikit-learn: Machine Learning in Python. *Journal of Machine Learning Research*, 12, 2825–2830.
+
+[2] McKinney, W. (2010). Data Structures for Statistical Computing in Python. *Proc. 9th Python in Science Conf.* (pp. 56–61).
+
+[3] Breiman, L. (2001). Random Forests. *Machine Learning*, 45(1), 5–32.
+
+## VITA
+
+**Name:** [PLACEHOLDER: Enter your full name]  
+**Matric number:** [PLACEHOLDER: Enter your matric number]  
+**Model (LLM):** GLM-5.2  
+**LLM interface:** TraeCode (Codex)  
+**GitHub:** [PLACEHOLDER: Enter your GitHub repository link]

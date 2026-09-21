@@ -31,12 +31,28 @@ def md_inline(text: str) -> str:
 
 
 def parse_markdown(md_text: str, plots_dir: str):
-    """Yield reportlab flowables from markdown text."""
-    styles = getSampleStyleSheet()
-    h1 = ParagraphStyle("H1", parent=styles["Heading1"], fontSize=11, spaceAfter=4, spaceBefore=2)
-    h2 = ParagraphStyle("H2", parent=styles["Heading2"], fontSize=9, spaceAfter=3, spaceBefore=4)
-    body = ParagraphStyle("Body", parent=styles["BodyText"], fontSize=7.5, leading=9.5, spaceAfter=2)
-    bullet = ParagraphStyle("Bullet", parent=body, leftIndent=10, bulletIndent=2, spaceAfter=1)
+    """Yield reportlab flowables from markdown text.
+
+    Uses Times-Roman 10pt body text to align with the official report
+    template (IN6227-Reports-Template.doc) which specifies Times New
+    Roman 10-point font.
+    """
+    # Official template: Times New Roman 10pt. reportlab's "Times-Roman"
+    # is the metric-compatible built-in equivalent.
+    FONT = "Times-Roman"
+    FONT_BOLD = "Times-Bold"
+    FONT_ITALIC = "Times-Italic"
+
+    h1 = ParagraphStyle("H1", fontName=FONT_BOLD, fontSize=10, leading=12,
+                        spaceAfter=3, spaceBefore=2)
+    h2 = ParagraphStyle("H2", fontName=FONT_BOLD, fontSize=10, leading=12,
+                        spaceAfter=2, spaceBefore=4)
+    h3 = ParagraphStyle("H3", fontName=FONT_BOLD, fontSize=10, leading=12,
+                        spaceAfter=1, spaceBefore=3)
+    body = ParagraphStyle("Body", fontName=FONT, fontSize=10, leading=12,
+                          spaceAfter=2, alignment=TA_LEFT)
+    bullet = ParagraphStyle("Bullet", parent=body, leftIndent=12,
+                            bulletIndent=2, spaceAfter=1)
 
     flowables = []
     lines = md_text.split("\n")
@@ -61,6 +77,12 @@ def parse_markdown(md_text: str, plots_dir: str):
             i += 1
             continue
 
+        # H3 (check before H2 since ### starts with ##)
+        if line.startswith("### "):
+            flowables.append(Paragraph(md_inline(line[4:]), h3))
+            i += 1
+            continue
+
         # H2
         if line.startswith("## "):
             flowables.append(Paragraph(md_inline(line[3:]), h2))
@@ -76,7 +98,7 @@ def parse_markdown(md_text: str, plots_dir: str):
                 img_path = os.path.join(plots_dir, os.path.basename(img_path))
             if os.path.exists(img_path):
                 try:
-                    img = RLImage(img_path, width=2.2 * inch, height=1.8 * inch)
+                    img = RLImage(img_path, width=2.0 * inch, height=1.6 * inch)
                     flowables.append(img)
                 except Exception:
                     pass
@@ -127,7 +149,8 @@ def build_table(table_lines, style):
         return Spacer(1, 0)
 
     # Create paragraph-wrapped cells for text wrapping
-    cell_style = ParagraphStyle("Cell", parent=style, fontSize=6.5, leading=8)
+    cell_style = ParagraphStyle("Cell", parent=style, fontName="Times-Roman",
+                                 fontSize=8, leading=10)
     data = []
     for r_idx, row in enumerate(rows):
         data.append([Paragraph(md_inline(c), cell_style) for c in row])
@@ -148,7 +171,8 @@ def build_table(table_lines, style):
     tbl.setStyle(TableStyle([
         ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#4C72B0")),
         ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
-        ("FONTSIZE", (0, 0), (-1, -1), 6.5),
+        ("FONTNAME", (0, 0), (-1, -1), "Times-Roman"),
+        ("FONTSIZE", (0, 0), (-1, -1), 8),
         ("ALIGN", (1, 0), (-1, -1), "CENTER"),
         ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
         ("GRID", (0, 0), (-1, -1), 0.25, colors.grey),
@@ -177,13 +201,27 @@ def main():
 
     flowables = parse_markdown(md_text, plots_dir)
 
+    # Official template header: "IN6227 DATA MINING 2023, WKWSCI"
+    header_style = ParagraphStyle(
+        "Header", fontName="Times-Roman", fontSize=8, leading=10,
+        alignment=TA_LEFT, textColor=colors.grey,
+    )
+    header_para = Paragraph("IN6227 DATA MINING 2023, WKWSCI", header_style)
+
+    def on_page(canvas, doc):
+        canvas.saveState()
+        canvas.setFont("Times-Roman", 8)
+        canvas.setFillColor(colors.grey)
+        canvas.drawString(15 * mm, A4[1] - 8 * mm, "IN6227 DATA MINING 2023, WKWSCI")
+        canvas.restoreState()
+
     doc = SimpleDocTemplate(
         args.out, pagesize=A4,
         leftMargin=15 * mm, rightMargin=15 * mm,
-        topMargin=12 * mm, bottomMargin=12 * mm,
+        topMargin=15 * mm, bottomMargin=12 * mm,
         title="IN6227 Assignment 1 Report",
     )
-    doc.build(flowables)
+    doc.build(flowables, onFirstPage=on_page, onLaterPages=on_page)
 
     # Verify page count
     try:
