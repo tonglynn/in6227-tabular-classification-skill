@@ -37,6 +37,7 @@
   "scripts": [
     "data_profiler.py",
     "train_eval.py",
+    "populate_template.py",
     "generate_report.py",
     "render_pdf.py"
   ],
