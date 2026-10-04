@@ -91,25 +91,3 @@ Run: `python tests/test_generalization.py`
 ## License
 
 MIT
-
-## Design influences
-
-This SKILL's architecture was informed by prior GitHub research into
-open-source AutoML and tabular-classification projects. The full
-provenance record — including what was borrowed, what was
-intentionally not borrowed, and where each concept appears in this
-project — is in [references/github_research.md](references/github_research.md).
-
-Summary of design influences:
-
-- **AutoGluon** — layered profiling → decision → training structure;
-  leaderboard-style reporting.
-- **FLAML** — economical model/hyperparameter search; cost-transparency
-  per model.
-- **mljar-supervised** — structured machine-readable JSON outputs
-  feeding automated report generation.
-- **claude-for-ai-platforms** — model ladder, mandatory Dummy
-  baseline, explicit decision tables, and named traps.
-
-No upstream code was copied. All scripts are our own lightweight
-sklearn-based implementations.

@@ -33,8 +33,9 @@ Python / scikit-learn (all computation)
         │
         ├── scripts/data_profiler.py     → profile.json, preprocess_config.json
         ├── scripts/train_eval.py        → results.json, run_manifest.json, plots/
-        ├── scripts/generate_report.py   → report.md
-        └── scripts/render_pdf.py        → report.pdf
+        ├── scripts/populate_template.py → final_report.docx, final_report.pdf
+        ├── scripts/generate_report.py   → report.md (legacy)
+        └── scripts/render_pdf.py        → report.pdf (legacy)
 ```
 
 **Design principles:** simple, transparent, explainable, reproducible,
@@ -198,8 +199,8 @@ Run: `python tests/test_generalization.py`
 | `preprocess_config.json` | `data_profiler.py` | Numeric / categorical column lists, imputation / encoding strategies |
 | `results.json` | `train_eval.py` | CV metrics per model, test metrics, feature importance, confusion matrix |
 | `run_manifest.json` | `train_eval.py` | Run metadata, scripts, timing, environment, leakage-safety flags |
-| `report.md` | `generate_report.py` | Human-readable report rendered from the above |
-| `report.pdf` | `render_pdf.py` | PDF version (≤ 2 pages) |
+| `final_report.docx` | `populate_template.py` | Word document populated from official template |
+| `final_report.pdf` | `populate_template.py` | PDF version (≤ 2 pages) via Word COM |
 
 ## 10. Report Requirements
 
@@ -232,24 +233,34 @@ in6227-tabular-classification-skill/
 ├── REFLECTION.md
 ├── requirements.txt
 ├── .gitignore
+├── validate.py                   ← self-check (25 items)
+├── github_sources_verified.md    ← provenance of upstream GitHub research
 ├── assets/
-│   ├── report_template.md        ← Jinja2 markdown template
+│   ├── report_template.md        ← Jinja2 markdown template (legacy)
 │   └── metadata.json             ← student / model metadata
 ├── scripts/
 │   ├── data_profiler.py
 │   ├── train_eval.py
-│   ├── generate_report.py
-│   └── render_pdf.py
+│   ├── generate_report.py        ← Jinja2 markdown report (legacy)
+│   ├── render_pdf.py             ← reportlab PDF (legacy)
+│   └── populate_template.py      ← official Word template via COM → docx/pdf
 ├── references/
 │   └── decision_guide.md         ← preprocessing / model decision tables
 ├── tests/
 │   └── test_generalization.py
+├── examples/
+│   └── example_run/              ← sample outputs from one full run
+│       ├── profile.json
+│       ├── preprocess_config.json
+│       ├── results.json
+│       ├── run_manifest.json
+│       └── final_report.pdf
 ├── profile.json                  ← generated
 ├── preprocess_config.json        ← generated
 ├── results.json                  ← generated
 ├── run_manifest.json             ← generated
-├── report.md                     ← generated
-├── report.pdf                    ← generated
+├── final_report.docx             ← generated
+├── final_report.pdf              ← generated
 └── plots/                        ← generated
     ├── target_distribution.png
     ├── confusion_matrix.png

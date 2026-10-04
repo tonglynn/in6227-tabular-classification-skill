@@ -1,0 +1,55 @@
+{
+  "run_at": "2026-09-21T20:05:08.268150+00:00",
+  "train_file": "train.csv",
+  "test_file": "test.csv",
+  "target": "label",
+  "n_train": 31109,
+  "n_test": 13333,
+  "cv_folds": 5,
+  "models_evaluated": [
+    "dummy",
+    "logistic_regression",
+    "random_forest",
+    "gradient_boosting"
+  ],
+  "best_model": "random_forest",
+  "selection_metric": "f1",
+  "best_cv_f1": 0.6641119844308345,
+  "test_metrics": {
+    "accuracy": 0.8271956798919973,
+    "precision": 0.6177111716621253,
+    "recall": 0.7155934343434344,
+    "f1": 0.66305937408599,
+    "roc_auc": 0.888671391733369,
+    "pr_auc": 0.7010138373603542,
+    "confusion_matrix": [
+      [
+        8762,
+        1403
+      ],
+      [
+        901,
+        2267
+      ]
+    ]
+  },
+  "total_time_sec": 71.19,
+  "scripts": [
+    "data_profiler.py",
+    "train_eval.py",
+    "generate_report.py",
+    "render_pdf.py"
+  ],
+  "environment": {
+    "python": "3.12.2",
+    "sklearn": "1.8.0",
+    "numpy": "2.4.4",
+    "pandas": "3.0.2"
+  },
+  "leakage_safety": {
+    "preprocessing_in_pipeline": true,
+    "cv_strategy": "StratifiedKFold",
+    "test_used_for_selection": false,
+    "target_in_features": false
+  }
+}
