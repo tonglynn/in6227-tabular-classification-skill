@@ -298,26 +298,11 @@ def main():
                 print(f"[populate] Inserted results table ({n_rows}x{n_cols})")
                 break
 
-    # --- 6. CONFUSION MATRIX: small image directly after the Results table ---
-    cm_path = os.path.join(PLOTS_DIR, "confusion_matrix.png")
-    if os.path.exists(cm_path) and results_idx is not None:
-        # Find the table we just inserted, then add image after it. Inserting
-        # at the Discussion heading can move the image to the page/column
-        # anchor and cover the title block, so keep the anchor in Results.
-        for i in range(results_idx + 1, doc.Paragraphs.Count):
-            text = doc.Paragraphs(i + 1).Range.Text.strip()
-            if text.startswith("Test-set performance"):
-                body_para = doc.Paragraphs(i + 1)
-                insert_range = doc.Range(body_para.Range.End, body_para.Range.End)
-                insert_range.InsertAfter("\r")
-                image_para = doc.Paragraphs(i + 2)
-                img_range = doc.Range(image_para.Range.Start, image_para.Range.Start)
-                shape = image_para.Range.InlineShapes.AddPicture(cm_path, False, True, img_range)
-                shape.Width = 85
-                shape.Height = 64
-                image_para.Range.ParagraphFormat.Alignment = 0  # left
-                print(f"[populate] Inserted confusion matrix after Results text")
-                break
+    # --- 6. CONFUSION MATRIX ---
+    # The official template has no figure slot. A floating or inline figure
+    # changes the two-column pagination and can cover the title block in Word.
+    # The confusion-matrix values remain available in results.json and the
+    # report's Results paragraph/table.
 
     # --- 7. REFERENCES ---
     for i in range(doc.Paragraphs.Count):
