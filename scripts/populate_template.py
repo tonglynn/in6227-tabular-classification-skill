@@ -112,23 +112,25 @@ def main():
             print(f"[populate] Replaced author+assignment at P{i}")
             break
 
-    # --- 3. FOOTER: left=title, right=author using tab stops ---
-    # Template footer has: [DOCUMENT TITLE] on left, [AUTHOR NAME] on right
-    # using tab stops (center at 212.6pt, right at 425.2pt)
-    # The footer text uses \x07 (tab) to position text
+    # --- 3. FOOTER: replace placeholder runs while preserving template formatting ---
+    # Do not assign to the whole footer range: that discards the template's
+    # blue 9pt footer formatting and tab stops.
     for sec in doc.Sections:
         for fi in range(1, 4):
             ftr = sec.Footers(fi)
             if not ftr:
                 continue
-            ftr_range = ftr.Range
-            ftr_text = ftr_range.Text
-            if "[DOCUMENT TITLE]" in ftr_text or "[AUTHOR NAME]" in ftr_text:
-                # Replace placeholders preserving tab structure
-                new_text = ftr_text.replace("[DOCUMENT TITLE]", title_text)
-                new_text = new_text.replace("[AUTHOR NAME]", author_name_only)
-                ftr_range.Text = new_text
-                print(f"[populate] Replaced footer in Section {sec.Index} Footer {fi}")
+            for placeholder, value in (("[DOCUMENT TITLE]", title_text), ("[AUTHOR NAME]", author_name_only)):
+                search = ftr.Range.Duplicate
+                find = search.Find
+                find.ClearFormatting()
+                find.Text = placeholder
+                find.Replacement.Text = value
+                find.Forward = True
+                find.Wrap = 0  # wdFindStop
+                find.Format = False
+                if find.Execute(Replace=2):  # wdReplaceOne
+                    print(f"[populate] Replaced {placeholder} in Section {sec.Index} Footer {fi}")
 
     # --- 4. SECTION BODIES ---
     intro_body = (
@@ -296,28 +298,25 @@ def main():
                 print(f"[populate] Inserted results table ({n_rows}x{n_cols})")
                 break
 
-    # --- 6. CONFUSION MATRIX: small image within column ---
+    # --- 6. CONFUSION MATRIX: small image directly after the Results table ---
     cm_path = os.path.join(PLOTS_DIR, "confusion_matrix.png")
     if os.path.exists(cm_path) and results_idx is not None:
-        # Find the table we just inserted, then add image after it
+        # Find the table we just inserted, then add image after it. Inserting
+        # at the Discussion heading can move the image to the page/column
+        # anchor and cover the title block, so keep the anchor in Results.
         for i in range(results_idx + 1, doc.Paragraphs.Count):
             text = doc.Paragraphs(i + 1).Range.Text.strip()
-            if "DISCUSSION" in text.upper():
-                # Insert image BEFORE the DISCUSSION heading
-                disc_para = doc.Paragraphs(i + 1)
-                img_range = doc.Range(disc_para.Range.Start, disc_para.Range.Start)
-                img_range.InsertBefore("\r")
-                # Now insert image in the new paragraph
-                new_para = doc.Paragraphs(i + 1)  # shifted
-                img_sel = word.Selection
-                img_sel.SetRange(new_para.Range.Start, new_para.Range.Start)
-                # Add image with small width to fit in one column
-                # Column width ≈ (page_width - margins - gap) / 2 ≈ 8cm ≈ 3.15 inch
-                # Use 5cm ≈ 2 inch to be safe
-                shape = img_sel.InlineShapes.AddPicture(cm_path)
-                shape.Width = 113  # 4cm in points (1cm ≈ 28.35pt)
-                shape.Height = 85  # maintain aspect ratio ≈ 3cm
-                print(f"[populate] Inserted confusion matrix (4cm x 3cm)")
+            if text.startswith("Test-set performance"):
+                body_para = doc.Paragraphs(i + 1)
+                insert_range = doc.Range(body_para.Range.End, body_para.Range.End)
+                insert_range.InsertAfter("\r")
+                image_para = doc.Paragraphs(i + 2)
+                img_range = doc.Range(image_para.Range.Start, image_para.Range.Start)
+                shape = image_para.Range.InlineShapes.AddPicture(cm_path, False, True, img_range)
+                shape.Width = 85
+                shape.Height = 64
+                image_para.Range.ParagraphFormat.Alignment = 0  # left
+                print(f"[populate] Inserted confusion matrix after Results text")
                 break
 
     # --- 7. REFERENCES ---
