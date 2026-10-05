@@ -3,7 +3,7 @@
   "full_name": "LIN TONG",
   "assignment": "IN6227-Assignment-1",
   "variant": "Variant-2",
-  "model_name": "GLM-5.2",
-  "llm_interface": "TraeCode (Codex)",
+  "model_name": "GPT-6",
+  "llm_interface": "Codex desktop",
   "github_link": "https://github.com/tonglynn/in6227-tabular-classification-skill"
 }
