@@ -1,3 +1,10 @@
+---
+name: tabular-classification
+description: Run a leakage-safe end-to-end tabular classification workflow on CSV data, including profiling, preprocessing, model comparison, evaluation, and automated report generation. Use for binary or multiclass tabular datasets; do not use for regression or non-tabular data.
+metadata:
+  short-description: Leakage-safe tabular classification and reporting
+---
+
 # SKILL: End-to-End Tabular Classification
 
 > A reusable, leakage-safe workflow for tabular classification with
