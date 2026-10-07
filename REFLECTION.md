@@ -1,227 +1,24 @@
-# REFLECTION — IN6227 Assignment 1, Variant 2
+# Reflection - IN6227 Assignment 1, Variant 2
 
-## 1. Human Oversight
+## Human oversight
 
-### Oversight gates designed into the SKILL
+I treated the generated files as drafts and checked the intermediate outputs before accepting the final report. I first reviewed `profile.json` and `preprocess_config.json` to make sure the target was `label`, that the missing values had been identified, and that the numeric and categorical columns were assigned sensible preprocessing. I then checked `results.json` and `run_manifest.json` after training. In particular, I checked that preprocessing was inside the sklearn pipeline, that cross-validation was stratified, and that the test set was used only after model selection.
 
-The SKILL incorporates several **designed-in** oversight mechanisms —
-i.e., safeguards built into the workflow that would constrain a human
-practitioner in the same way. These are gates in the *design*; they
-are enforced automatically by the code, not manually approved by a
-human at each step.
-
-| Gate | Where enforced | What it prevents |
-|---|---|---|
-| **Preprocessing inside Pipeline** | `train_eval.py` — `ColumnTransformer` embedded in `Pipeline` | Fitting imputer/scaler/encoder on the full dataset before CV (leakage) |
-| **Stratified K-Fold CV** | `train_eval.py` — `StratifiedKFold(shuffle=True, random_state=42)` | Class proportion drift across folds |
-| **Test set used once** | `train_eval.py` — best model retrained on full train, evaluated on test only after selection | Using test data for model selection or tuning |
-| **Target excluded from features** | `train_eval.py` — `X = df.drop(columns=[target])` | Target leakage into feature matrix |
-| **Rows with NA target dropped** | `train_eval.py` — `df.dropna(subset=[target])` | Training on undefined labels |
-| **No manual metric entry** | `generate_report.py` — all values come from `results.json` | Fabricated or altered performance numbers |
-| **PDF page-count check** | `render_pdf.py` — verifies ≤ 2 pages via `pypdf` | Over-length report |
-| **Generalization test** | `tests/test_generalization.py` — runs pipeline on Breast Cancer & Iris | Hard-coded dataset logic |
-| **Official template alignment** | `render_pdf.py` — Times-Roman 10pt, sections: INTRODUCTION / METHODS / RESULTS / DISCUSSION / CONCLUSION / REFERENCES / VITA, running header | Ignoring official report template |
-
-**Important distinction:** These gates are *designed into the SKILL* and
-run automatically, while I still reviewed the intermediate outputs and
-the final deliverable. The code-enforced gates reduced the chance of
-leakage or transcription errors; my review decided whether the result
-was acceptable for submission.
-
-### Oversight actually exercised during this implementation
-
-The following checks were performed during the implementation and review:
-
-- The AI agent inspected the existing project state (3 files only),
-  classified each component as MISSING, and proceeded to build from
-  scratch while preserving the valid `README.md`, `requirements.txt`,
-  and `.gitignore`.
-- The dataset was independently profiled and verified against the
-  sanity-check expectations (31 112 × 16, target `label`, no : 23 645,
-  yes : 7 464, imbalance 3.168 : 1). All matched.
-- The profiler was run, its output (`profile.json`) was inspected, and
-  the preprocessing config was confirmed to use median imputation for
-  numerics and most-frequent imputation + one-hot encoding for
-  categoricals — consistent with the leakage rules.
-- The training script was executed end-to-end; CV and test metrics were
-  printed to the console and cross-checked against `results.json`.
-- The official `IN6227-Reports-Template.doc` was inspected (via Word COM
-  automation) to extract its required sections (INTRODUCTION, METHODS OR
-  PROCEDURES, RESULTS, DISCUSSION, CONCLUSION, REFERENCES, VITA) and
-  formatting (Times New Roman 10pt). The report template was then
-  restructured to match.
-- The report was generated from `results.json` and verified to contain
-  matching numbers (see §3 below).
-- The PDF page count was verified to be 2.
-- Generalization tests on Breast Cancer (binary) and Iris (multiclass)
-  were executed to confirm no hard-coded target names or feature names.
-
-I accepted the result because the required sections were present, the
-report stayed within the two-page limit, the metrics matched the JSON
-outputs, and the generated PDF contained my intended GitHub link. If I
-repeated the work, I would add nested cross-validation or a small,
-explicit hyperparameter search inside the training set, and I would
-compare a recall-focused threshold alongside the F1-selected model.
-
-## 2. Critical Evaluation
-
-### What works well
-
-- **Leakage safety**: all preprocessing lives inside sklearn
-  `Pipeline` / `ColumnTransformer`, so during cross-validation the
-  imputer, scaler, and encoder are refit on each training fold only.
-  The test set is never touched during model selection.
-- **Metric coverage**: six metrics (Accuracy, Precision, Recall, F1,
-  ROC-AUC, PR-AUC) are computed for every model, both in CV and on the
-  test set. F1 is used as the selection metric because it balances
-  precision and recall — important under the 3.2 : 1 imbalance.
-- **Reproducibility**: `random_state=42` is set everywhere; the
-  `run_manifest.json` records the environment (Python, sklearn, numpy,
-  pandas versions), scripts executed, timing, and leakage-safety flags.
-- **Generalization**: no target name, feature name, or row count is
-  hard-coded. The pipeline was tested on two sklearn datasets with
-  different shapes, feature counts, and problem types (binary vs
-  multiclass).
-- **Automated reporting**: the final report is generated as
-  `final_report.docx` and `final_report.pdf`
-  entirely from structured JSON outputs — no manual number entry.
-
-### Critical decision I questioned
-
-The SKILL selects the model by mean CV F1. I questioned this choice
-because the minority class is materially smaller and LogisticRegression
-has higher recall than RandomForest, even though RandomForest has the
-highest F1 by only 0.004. I ultimately agree with using F1 as the
-default, because it balances precision and recall and is reproducible
-across binary and multiclass data; for a real cost-sensitive deployment,
-I would expose threshold selection and let the application choose the
-operating point.
-
-### Limitations and honest caveats
-
-- **No hyperparameter tuning**: model hyper-parameters are sensible
-  defaults, not tuned. A grid search inside the CV loop could improve
-  results, but was deliberately omitted to keep the SKILL simple and
-  transparent (as the assignment requires).
-- **No feature engineering**: all original features are used. The data
-  already contains derived fields (e.g. `composite_rank`), so additional
-  engineering may or may not help. This is a deliberate design choice
-  for generality — engineered features tend to be dataset-specific.
-- **No explicit feature selection**: feature importance is computed and
-  reported (RandomForest), but no features are dropped. For a production
-  deployment, recursive feature elimination could reduce noise, but for
-  an academic assignment the full-feature approach is more transparent.
-- **GradientBoosting**: included as a strong tabular baseline, but it
-  was not the best model here (CV F1 = 0.626 vs RandomForest 0.664).
-  This is because GradientBoosting lacks `class_weight="balanced"` and
-  its recall on the minority class is lower.
-- **`class_weight` vs SMOTE**: the SKILL uses `class_weight="balanced"`
-  instead of SMOTE. This avoids the risk of synthetic-sample leakage
-  if SMOTE were applied outside the CV loop, and is the recommended
-  approach for moderate imbalance.
-- **Personal metadata**: the matric number, full name, and GitHub link
-  were filled in before submission and checked in the generated PDF.
-
-### Model comparison insight
-
-| Model | CV F1 | CV AUC | Test F1 | Test AUC |
-|---|---|---|---|---|
-| Dummy | 0.235 | 0.498 | — | — |
-| LogisticRegression | 0.660 | 0.890 | — | — |
-| RandomForest | 0.664 | 0.889 | 0.663 | 0.889 |
-| GradientBoosting | 0.626 | 0.891 | — | — |
-
-RandomForest achieved the highest mean CV F1, but its advantage over
-LogisticRegression was **small** (ΔF1 = 0.004). LogisticRegression has
-comparable AUC but higher recall (0.849 vs 0.715) at the cost of lower
-precision (0.540 vs 0.620). If recall on the minority class is
-prioritised (e.g., the "yes" class represents a costly event),
-LogisticRegression with `class_weight="balanced"` might be preferred
-despite the slightly lower F1. The two models are comparable in
-discriminative power; the choice between them depends on the
-precision-recall trade-off preferred by the application.
-
-## 3. Trustworthiness
-
-### Independent verification of concrete results
-
-The following checks were performed to verify that the structured
-outputs are self-consistent and trustworthy. In addition to automated
-checks, I manually opened the final PDF and confirmed that the VITA
-section displayed the intended GitHub URL:
+I also reviewed the report layout against the supplied Word template. The report contains the required sections, the first two pages are the generated report, and the Reflection follows after those pages. Before accepting the result, I opened the final PDF and manually checked the VITA block. The GitHub URL shown there was the repository I intended to submit:
 `https://github.com/tonglynn/in6227-tabular-classification-skill`.
 
-#### 3.1 Target counts
+I accepted the result because the report numbers matched the structured outputs, the report stayed within the two-page limit, and the final PDF contained my name, matric number, model metadata, LLM interface, and repository link. If I ran the workflow again, I would spend more time tuning the models inside cross-validation and would include a clearer comparison of different classification thresholds.
 
-From `profile.json`:
-```json
-"counts": {"no": 23645, "yes": 7464}
-```
+## Critical evaluation
 
-Total: 23 645 + 7 464 = 31 109 (matches `n_samples` after dropping 3
-NA-target rows from the original 31 112).
+The decision I questioned most was using mean cross-validation F1 as the main model-selection metric. It is a reasonable default because the classes are imbalanced and F1 considers both precision and recall, but it does not reflect every possible cost of an error.
 
-Independently verified via:
-```python
-import pandas as pd
-df = pd.read_csv("train.csv").dropna(subset=["label"])
-print(df["label"].value_counts())
-# no    23645
-# yes    7464
-```
+For this dataset, RandomForest had the best CV F1 at 0.6641, while LogisticRegression was very close at 0.6602. LogisticRegression had much higher recall for the minority class (0.849 versus 0.715), although its precision was lower. If missing a positive case were more serious than raising a false alarm, I would choose LogisticRegression or tune the decision threshold instead of automatically accepting RandomForest. I therefore agree with F1 as a transparent default for this assignment, but I would not treat it as the only acceptable decision rule in a real application.
 
-#### 3.2 One metric
+I also chose not to add SMOTE or extensive feature engineering. That kept the workflow easier to explain and avoided introducing another possible source of leakage. The trade-off is that the models use mostly sensible defaults rather than a carefully tuned search, so the result should be read as a reproducible baseline rather than a production solution.
 
-From `results.json`, RandomForest CV mean F1: `0.6641119844308345`.
-The final report shows `0.6641` (4 dp). ✓ Consistent.
+## Trustworthiness
 
-From `results.json`, test F1: `0.66305937408599`.
-The final report shows `0.6631` (4 dp). ✓ Consistent.
+I checked the outputs in more than one place instead of relying only on the narrative report. The class counts in `profile.json` are 23,645 `no` and 7,464 `yes`, which sum to 31,109 after the three rows with missing targets are removed. The confusion matrix in `results.json` is `[[8762, 1403], [901, 2267]]`; its entries sum to 13,333, the reported test-set size.
 
-#### 3.3 Confusion matrix totals
-
-From `results.json`:
-```json
-"confusion_matrix": [[8762, 1403], [901, 2267]]
-```
-
-Row totals: 8762 + 1403 = 10 165 (true "no"), 901 + 2267 = 3 168 (true "yes").
-Grand total: 10 165 + 3 168 = 13 333 = `n_test`. ✓
-
-Expected test class proportions: no ≈ 76.0%, yes ≈ 24.0%.
-Actual: 10 165 / 13 333 = 76.2%, 3 168 / 13 333 = 23.8%. ✓ Close to
-train distribution.
-
-#### 3.4 Report / result consistency
-
-Every reported number in `final_report.pdf` was cross-checked against
-`results.json`:
-
-| Metric (final_report.pdf) | results.json value | Match? |
-|---|---|---|
-| CV accuracy (RF) 0.8266 | 0.8265775... | ✓ |
-| CV F1 (RF) 0.6641 | 0.6641119... | ✓ |
-| CV AUC (RF) 0.8892 | 0.8892434... | ✓ |
-| Test accuracy 0.8272 | 0.8271956... | ✓ |
-| Test F1 0.6631 | 0.6630593... | ✓ |
-| Test AUC 0.8887 | 0.8886713... | ✓ |
-| Dummy accuracy 0.6351 | 0.6351214... | ✓ |
-| Dummy F1 0.2351 | 0.2350554... | ✓ |
-
-All values match to 4 decimal places. No metric was manually entered or
-altered.
-
-### Trust assessment
-
-| Aspect | Assessment |
-|---|---|
-| Data integrity | Original `train.csv` / `test.csv` unchanged — only read, never written |
-| Leakage prevention | All preprocessing inside Pipeline; CV refits per fold; test used once |
-| Metric correctness | Computed by sklearn `cross_validate` and `cross_val_predict`; independently verified |
-| Report consistency | All report numbers trace to `results.json`; verified cell-by-cell |
-| Official template alignment | Report uses INTRODUCTION / METHODS / RESULTS / DISCUSSION / CONCLUSION / REFERENCES / VITA sections; Times-Roman 10pt; running header matches `IN6227-Reports-Template.doc` |
-| Reproducibility | `random_state=42` everywhere; `run_manifest.json` records actual Python/sklearn/numpy/pandas versions |
-| Generalization | Tested on 2 additional datasets (binary + multiclass) without code changes |
-| Personal metadata | Name, matric number, and GitHub URL were checked in the final PDF |
-| Model comparison honesty | Report does not overstate RF's advantage over LogReg (ΔF1=0.004, described as "small") |
-
+I manually opened the final PDF and checked the GitHub URL in the VITA section. I also compared the displayed RandomForest F1 values with `results.json`: the report shows CV F1 `0.6641` and test F1 `0.6631`, which match the underlying values when rounded to four decimal places. These checks gave me confidence that the report was generated from the actual run rather than being filled in manually.
