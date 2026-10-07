@@ -225,7 +225,3 @@ altered.
 | Personal metadata | Name, matric number, and GitHub URL were checked in the final PDF |
 | Model comparison honesty | Report does not overstate RF's advantage over LogReg (ΔF1=0.004, described as "small") |
 
----
-
-*This reflection records the implementation checks performed with AI
-assistance and the student's final review and acceptance decision.*
